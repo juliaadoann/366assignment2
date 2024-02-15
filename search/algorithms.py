@@ -153,11 +153,11 @@ class CBSState:
         # Update the total cost of the CBS state
         self._cost = total_cost
 
-        # debug
-        print("Paths:")
-        for agent_id, path in self._paths.items():
-            print("Agent:", agent_id)
-            print("Path:", path)
+        # # debug
+        # print("Paths:")
+        # for agent_id, path in self._paths.items():
+        #     print("Agent:", agent_id)
+        #     print("Path:", path)
     
     def is_solution(self):
         """
@@ -170,9 +170,9 @@ class CBSState:
                 for state_i in self._paths[agent_i]:
                     for state_j in self._paths[agent_j]:
                         if state_i == state_j:
-                            # Print conflicting states for debugging
-                            print("Conflict found between agent", agent_i, "and agent", agent_j)
-                            print("Conflicting state:", state_i)
+                            # # Print conflicting states for debugging
+                            # print("Conflict found between agent", agent_i, "and agent", agent_j)
+                            # print("Conflicting state:", state_i)
                             # Return the first conflict found
                             return False, (state_i, state_i.get_g())
         return True, None
@@ -205,10 +205,10 @@ class CBSState:
             child_2.set_constraint(conflict_state, conflict_time, agent_id)
             children.append(child_2)
 
-        # Print the generated children for debugging
-        print("Generated children:")
-        for child in children:
-            print(child)
+        # # Print the generated children for debugging
+        # print("Generated children:")
+        # for child in children:
+        #     print(child)
 
         return children
 
@@ -244,24 +244,29 @@ class CBS():
         """
         Performs CBS search for the problem defined in start.
         """
-        start.compute_cost()
-        OPEN = []
-        heapq.heappush(OPEN, start)
+        # Initialize the OPEN list with the root node
+        OPEN = [start]
 
+        # Perform best-first search
         while OPEN:
-            n = heapq.heappop(OPEN)
-            is_solution, conflict_info = n.is_solution()
+            # Pop the node with the lowest cost from the OPEN list
+            node = min(OPEN, key=lambda x: x.get_cost())
+            OPEN.remove(node)
+
+            # Compute the cost of the node and populate the _paths dictionary
+            node.compute_cost()
+
+            # Check if the node is a solution
+            is_solution, _ = node.is_solution()
             if is_solution:
-                return n._paths, n._cost
-            
-            successors = n.successors()
+                # Return the paths and the solution cost
+                return node._paths, node.get_cost()
 
-            for n_prime in successors:
-                # n_prime.compute_cost()
-                # if n_prime.get_cost() != float('inf'):
-                #     OPEN.append(n_prime)
-                heapq.heappush(OPEN, n_prime)
+            # Generate successors and add them to the OPEN list
+            successors = node.successors()
+            OPEN.extend(successors)
 
+        # If no solution is found, return None
         return None, None
         
 class AStar():
