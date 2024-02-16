@@ -140,40 +140,27 @@ class CBSState:
         Computes the cost of a CBS state. Assumes the sum of the cost of the paths as the objective function.
         """
         astar = AStar(self._map)
-
         total_cost = 0
-        for agent_id in range(self._k):
-            # Use A* to find the solution path for the agent
-            cost, path = astar.search(self._starts[agent_id], self._goals[agent_id], self._constraints[agent_id])
 
-            # Update the path and cost for the agent
-            self._paths[agent_id] = path
+        for id in range(self._k):
+            cost, path = astar.search(self._starts[id], self._goals[id], self._constraints[id])
+
+            self._paths[id] = path
             total_cost += cost
 
-        # Update the total cost of the CBS state
         self._cost = total_cost
-
-        # # debug
-        # print("Paths:")
-        # for agent_id, path in self._paths.items():
-        #     print("Agent:", agent_id)
-        #     print("Path:", path)
     
     def is_solution(self):
         """
         Verifies whether a CBS state is a solution. If it isn't, it returns False and a tuple with 
         the conflicting state and time step; returns True, None otherwise. 
         """
-        for agent_i in range(self._k):
-            for agent_j in range(agent_i + 1, self._k):
-                # Check conflicts between the paths of agent_i and agent_j
-                for state_i in self._paths[agent_i]:
-                    for state_j in self._paths[agent_j]:
+        for i in range(self._k):
+            for j in range(i + 1, self._k):
+                for state_i in self._paths[i]:
+                    for state_j in self._paths[j]:
                         if state_i == state_j:
-                            # # Print conflicting states for debugging
-                            # print("Conflict found between agent", agent_i, "and agent", agent_j)
-                            # print("Conflicting state:", state_i)
-                            # Return the first conflict found
+                            # conflict is found
                             return False, (state_i, state_i.get_g())
         return True, None
 
@@ -183,32 +170,23 @@ class CBSState:
         """
         children = []
 
-        # Find conflicts in the solution paths
         is_solution, conflict_info = self.is_solution()
-        conflict_state, conflict_time = conflict_info
+        state, time = conflict_info
 
-        # If the state is a solution or there's no conflict, return empty list of children
-        if is_solution or conflict_state is None:
+        if is_solution or state is None:
             return children
 
-        # Iterate over each agent to create two children with constraints
         for agent_id in range(self._k):
-            # Create the first child with constraints for the first agent
             child_1 = CBSState(self._map, self._starts, self._goals)
-            child_1._constraints = copy.deepcopy(self._constraints)  # Make a deep copy of the constraints
-            child_1.set_constraint(conflict_state, conflict_time, agent_id)
+            child_1._constraints = copy.deepcopy(self._constraints)
+            child_1.set_constraint(state, time, agent_id)
             children.append(child_1)
 
             # Create the second child with constraints for the second agent
             child_2 = CBSState(self._map, self._starts, self._goals)
-            child_2._constraints = copy.deepcopy(self._constraints)  # Make a deep copy of the constraints
-            child_2.set_constraint(conflict_state, conflict_time, agent_id)
+            child_2._constraints = copy.deepcopy(self._constraints)
+            child_2.set_constraint(state, time, agent_id)
             children.append(child_2)
-
-        # # Print the generated children for debugging
-        # print("Generated children:")
-        # for child in children:
-        #     print(child)
 
         return children
 
@@ -244,29 +222,23 @@ class CBS():
         """
         Performs CBS search for the problem defined in start.
         """
-        # Initialize the OPEN list with the root node
-        OPEN = [start]
+        start.compute_cost()
 
-        # Perform best-first search
+        OPEN = []
+        OPEN.append(start)
+
         while OPEN:
-            # Pop the node with the lowest cost from the OPEN list
-            node = min(OPEN, key=lambda x: x.get_cost())
-            OPEN.remove(node)
+            n = min(OPEN, key=lambda x: x.get_cost())
+            OPEN.remove(n)
+            n.compute_cost()
 
-            # Compute the cost of the node and populate the _paths dictionary
-            node.compute_cost()
-
-            # Check if the node is a solution
-            is_solution, _ = node.is_solution()
+            is_solution, _ = n.is_solution()
             if is_solution:
-                # Return the paths and the solution cost
-                return node._paths, node.get_cost()
+                return n._paths, n.get_cost()
 
-            # Generate successors and add them to the OPEN list
-            successors = node.successors()
-            OPEN.extend(successors)
+            T_of_n = n.successors()
+            OPEN.extend(T_of_n)
 
-        # If no solution is found, return None
         return None, None
         
 class AStar():
